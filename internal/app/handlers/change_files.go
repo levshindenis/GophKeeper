@@ -53,7 +53,7 @@ func (mh *MyHandler) ChangeFiles(w http.ResponseWriter, r *http.Request) {
 		newF.Close()
 	}
 
-	if err := mh.GetCloud().ChangeFiles(userId+"ooo", cloudFiles); err != nil {
+	if err := mh.GetCloud().ChangeFiles(userId+"-cloud", cloudFiles); err != nil {
 		http.Error(w, "Error with ChangeFiles(cloud)", http.StatusInternalServerError)
 		return
 	}

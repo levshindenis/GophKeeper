@@ -15,9 +15,9 @@ func (s *Server) Init(conf config.Config) error {
 	s.config = conf
 	s.cookie = cookie.Cookie{Data: make(map[string]string)}
 
-	if err := s.cloud.Init(); err != nil {
-		return err
-	}
+	//if err := s.cloud.Init(); err != nil {
+	//	return err
+	//}
 
 	newDB, err := sql.Open("pgx", conf.GetDBAddress())
 	if err != nil {

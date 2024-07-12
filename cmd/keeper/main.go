@@ -27,6 +27,8 @@ func main() {
 		panic(err)
 	}
 
+	log.Println("Server start")
+
 	if err := http.ListenAndServe(conf.GetServerAddress(), router.Router(h)); err != nil {
 		panic(err)
 	}

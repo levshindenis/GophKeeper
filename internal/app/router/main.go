@@ -27,6 +27,9 @@ func Router(h handlers.MyHandler) *chi.Mux {
 		r.Get("/user/list-files", middleware.CheckCookie(h.ListFiles, &h))
 		r.Get("/user/list-cards", middleware.CheckCookie(h.ListCards, &h))
 		r.Get("/user/list-favourites", middleware.CheckCookie(h.ListFavourites, &h))
+		r.Get("/user/texts/{name}", middleware.CheckCookie(h.GetText, &h))
+		r.Get("/user/files/{name}", middleware.CheckCookie(h.GetFile, &h))
+		r.Get("/user/cards/{name}", middleware.CheckCookie(h.GetCard, &h))
 	})
 	return r
 }

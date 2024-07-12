@@ -27,12 +27,14 @@ func (s *Server) SelectAction() {
 		fmt.Println("15) Посмотреть файлы")
 		fmt.Println("16) Посмотреть карты")
 		fmt.Println("17) Посмотреть избранное")
-		fmt.Println("18) Exit")
+		fmt.Println("18) Посмотреть текст(1)")
+		fmt.Println("19) Посмотреть данные карты(1)")
+		fmt.Println("20) Exit")
 		fmt.Println("===========================")
 		fmt.Print("Ввод:    ")
 		fmt.Scanf("%s", &s.choice)
 		fmt.Println(s.choice)
-		if number, _ := strconv.Atoi(s.choice); 0 < number && number < 19 {
+		if number, _ := strconv.Atoi(s.choice); 0 < number && number < 21 {
 			break
 		}
 		fmt.Println("Bad answer. Please repeat!")

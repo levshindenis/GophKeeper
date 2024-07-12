@@ -41,7 +41,7 @@ func (mh *MyHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
 		f.Close()
 	}
 
-	if err := mh.GetCloud().AddFiles(userId+"ooo", cloudFiles); err != nil {
+	if err := mh.GetCloud().AddFiles(userId+"-cloud", cloudFiles); err != nil {
 		http.Error(w, "Error with AddFiles(cloud)", http.StatusInternalServerError)
 		return
 	}

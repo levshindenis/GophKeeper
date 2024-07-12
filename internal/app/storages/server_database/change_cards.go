@@ -39,6 +39,12 @@ func (sd *ServerDatabase) ChangeCards(userId string, cards []models.ChCard) erro
 			tx.Rollback()
 			return err
 		}
+
+		if _, err = tx.ExecContext(ctx, `UPDATE updates SET update_time = $1 where user_id = $2`,
+			time.Now().Format(time.RFC3339), userId); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()

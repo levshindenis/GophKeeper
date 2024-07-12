@@ -90,3 +90,8 @@ type ChCloudFile struct {
 	NewData     multipart.File
 	NewSize     int64
 }
+
+type TeaErr struct {
+	ToState string
+	Err     string
+}

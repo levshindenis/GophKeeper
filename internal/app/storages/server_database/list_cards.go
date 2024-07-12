@@ -15,7 +15,7 @@ func (sd *ServerDatabase) ListCards(userId string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := sd.DB.QueryContext(ctx, `SELECT bank, number FROM binaries WHERE user_id = $1`, userId)
+	rows, err := sd.DB.QueryContext(ctx, `SELECT bank, number FROM cards WHERE user_id = $1`, userId)
 	if err != nil {
 		return nil, err
 	}
