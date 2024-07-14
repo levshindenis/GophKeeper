@@ -33,12 +33,12 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor == 3 {
 				m.state = "start"
 				m.choices = m.currentChoices[m.state]
-				m.helpStr = ""
 			}
 			if m.cursor == 4 {
 				return m, tea.Quit
 			}
 
+			m.helpStr = ""
 			m.cursor = 0
 			return m, nil
 		}

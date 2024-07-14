@@ -39,9 +39,6 @@ type Card struct {
 
 type ChText struct {
 	OldName        string `json:"old_name"`
-	OldDescription string `json:"old_description"`
-	OldComment     string `json:"old_comment"`
-	OldFavourite   bool   `json:"old_favourite"`
 	NewName        string `json:"new_name"`
 	NewDescription string `json:"new_description"`
 	NewComment     string `json:"new_comment"`
@@ -50,8 +47,6 @@ type ChText struct {
 
 type ChFile struct {
 	OldName      string `json:"old_name"`
-	OldComment   string `json:"old_comment"`
-	OldFavourite bool   `json:"old_favourite"`
 	NewName      string `json:"new_name"`
 	NewComment   string `json:"new_comment"`
 	NewFavourite bool   `json:"new_favourite"`
@@ -60,12 +55,6 @@ type ChFile struct {
 type ChCard struct {
 	OldBank      string `json:"old_bank"`
 	OldNumber    string `json:"old_number"`
-	OldMonth     int    `json:"old_month"`
-	OldYear      int    `json:"old_year"`
-	OldCVV       int    `json:"old_cvv"`
-	OldOwner     string `json:"old_owner"`
-	OldComment   string `json:"old_comment"`
-	OldFavourite bool   `json:"old_favourite"`
 	NewBank      string `json:"new_bank"`
 	NewNumber    string `json:"new_number"`
 	NewMonth     int    `json:"new_month"`

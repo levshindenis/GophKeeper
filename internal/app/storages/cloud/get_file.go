@@ -6,7 +6,7 @@ import (
 )
 
 func (c *Cloud) GetFile(userId string, name string) (*minio.Object, error) {
-	object, err := c.client.GetObject(context.Background(), userId, name, minio.GetObjectOptions{})
+	object, err := c.Client.GetObject(context.Background(), userId, name, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}

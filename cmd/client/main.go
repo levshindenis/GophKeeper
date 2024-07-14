@@ -10,24 +10,16 @@ import (
 	input "github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/storages/cloud"
 	"github.com/levshindenis/GophKeeper/internal/app/storages/server_database"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	if err := tools.MakeBaseDirectories(); err != nil {
-		log.Fatalf(err.Error())
-	}
 
-	db, err := sql.Open("sqlite3", "/tmp/keeper/db/keeper.db")
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	defer db.Close()
-
-	p := tea.NewProgram(initialModel(server_database.ServerDatabase{DB: db}))
-	if _, err = p.Run(); err != nil {
+	p := tea.NewProgram(initialModel())
+	if _, err := p.Run(); err != nil {
 		log.Fatalf(err.Error())
 		os.Exit(1)
 	}
@@ -46,19 +38,32 @@ type model struct {
 	textInput      input.Model
 	db             server_database.ServerDatabase
 	err            models.TeaErr
+	cloud          cloud.Cloud
+	textItem       models.Text
+	fileItem       models.File
+	cardItem       models.Card
 }
 
-func initialModel(db server_database.ServerDatabase) model {
+func initialModel() model {
+	var (
+		cl cloud.Cloud
+	)
+
 	newModel := model{
 		choices:        []string{"Регистрация", "Вход", "Выйти из программы"},
 		cursor:         0,
 		state:          "start",
 		helpStr:        "",
+		userId:         "",
 		textInput:      input.New(),
 		nextState:      make(map[string]string),
 		currentChoices: make(map[string][]string),
-		db:             db,
+		err:            models.TeaErr{},
+		textItem:       models.Text{},
+		fileItem:       models.File{},
+		cardItem:       models.Card{},
 	}
+
 	newModel.textInput.Focus()
 	newModel.nextState["reg_input_login"] = "reg_input_password"
 	newModel.nextState["reg_input_password"] = "reg_input_word"
@@ -75,15 +80,44 @@ func initialModel(db server_database.ServerDatabase) model {
 	newModel.nextState["add_card_cvv"] = "add_card_owner"
 	newModel.nextState["add_card_owner"] = "add_card_comment"
 	newModel.nextState["add_card_comment"] = "add_card"
+	newModel.nextState["add_file_comment"] = "add_file"
+	newModel.nextState["change_text_name"] = "change_text_description"
+	newModel.nextState["change_text_description"] = "change_text_comment"
+	newModel.nextState["change_text_comment"] = "change_text"
+	newModel.nextState["change_card_name"] = "change_card_number"
+	newModel.nextState["change_card_number"] = "change_card_month"
+	newModel.nextState["change_card_month"] = "change_card_year"
+	newModel.nextState["change_card_year"] = "change_card_cvv"
+	newModel.nextState["change_card_cvv"] = "change_card_owner"
+	newModel.nextState["change_card_owner"] = "change_card_comment"
+	newModel.nextState["change_card_comment"] = "change_card"
 
 	newModel.currentChoices["start"] = []string{"Регистрация", "Вход", "Выйти из программы"}
 	newModel.currentChoices["repeat"] = []string{"Да", "Нет"}
 	newModel.currentChoices["menu"] = []string{"Показать все тексты", "Показать все файлы", "Показать все карты",
 		"Сменить пользователя", "Выйти из программы"}
 
-	if err := db.MakeTables(); err != nil {
-		panic(err)
+	if err := tools.MakeBaseDirectories(); err != nil {
+		log.Fatalf(err.Error())
 	}
+
+	db, err := sql.Open("sqlite3", "/tmp/keeper/db/keeper.db")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	sd := server_database.ServerDatabase{DB: db}
+
+	if err = sd.MakeTables(); err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	if err = cl.Init(); err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	newModel.db = sd
+	newModel.cloud = cl
 
 	return newModel
 }
@@ -107,6 +141,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if ok := slices.Contains([]string{"texts", "files", "cards"}, m.state); ok {
 		return m.ListsUpdate(msg)
+	}
+
+	if m.state == "text_view" || m.state == "card_view" {
+		return m.ItemUpdate(msg)
 	}
 
 	switch msg := msg.(type) {

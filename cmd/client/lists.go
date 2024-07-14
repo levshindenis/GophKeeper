@@ -4,6 +4,7 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/gen2brain/dlgs"
 )
 
 func (m *model) TextsList() {
@@ -47,6 +48,18 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor == len(m.choices)-2 {
 				m.cursor = 0
 				m.state = "add_" + m.state[:len(m.state)-1] + "_name"
+				if m.state == "add_file_name" {
+					filePath, flag, err := dlgs.File("Select file", "", false)
+					if err != nil {
+						log.Fatalf(err.Error())
+					}
+					if !flag {
+						m.state = "files"
+						return m, nil
+					}
+					m.helpStr = filePath + "///"
+					m.state = "add_file_comment"
+				}
 				return m, nil
 			}
 			if m.cursor == len(m.choices)-1 {
@@ -55,6 +68,21 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.choices = m.currentChoices[m.state]
 				return m, nil
 			}
+			infoType := m.state[:len(m.state)-1]
+			m.state = infoType + "_view"
+			m.helpStr = m.choices[m.cursor]
+			if infoType == "text" {
+				m.cursor = 5
+				m.TextInfo()
+			}
+			if infoType == "file" {
+				m.cursor = 0
+			}
+			if infoType == "card" {
+				m.cursor = 8
+				m.CardInfo()
+			}
+			return m, nil
 		}
 	}
 	return m, nil

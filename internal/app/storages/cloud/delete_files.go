@@ -8,7 +8,7 @@ import (
 
 func (c *Cloud) DeleteFiles(userId string, arr []string) error {
 	for i := range arr {
-		if err := c.client.RemoveObject(context.Background(), userId, arr[i], minio.RemoveObjectOptions{}); err != nil {
+		if err := c.Client.RemoveObject(context.Background(), userId, arr[i], minio.RemoveObjectOptions{}); err != nil {
 			return err
 		}
 	}

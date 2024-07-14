@@ -2,13 +2,14 @@ package cloud
 
 import (
 	"context"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 )
 
-func (c *Cloud) CreateBucket(userId string) error {
-	err := c.client.MakeBucket(context.Background(),
-		userId, minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: true})
+func (c *Cloud) CreateBucket(login string) error {
+	err := c.Client.MakeBucket(context.Background(),
+		strings.ToLower(login), minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: true})
 	if err != nil {
 		return err
 	}

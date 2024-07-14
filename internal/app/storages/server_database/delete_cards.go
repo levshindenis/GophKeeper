@@ -2,11 +2,11 @@ package server_database
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
 func (sd *ServerDatabase) DeleteCards(userId string, numbers []string) error {
-	var str string
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -17,14 +17,9 @@ func (sd *ServerDatabase) DeleteCards(userId string, numbers []string) error {
 	}
 
 	for i := range numbers {
-		row := tx.QueryRowContext(ctx, `SELECT comment FROM cards WHERE user_id = $1 and number = $2`,
-			userId, numbers[i])
-		if err = row.Scan(&str); err != nil {
-			continue
-		}
-
+		arr := strings.Split(numbers[i], " ")
 		if _, err = tx.ExecContext(ctx,
-			`DELETE FROM cards WHERE user_id = $1 and number = $2`, userId, numbers[i]); err != nil {
+			`DELETE FROM cards WHERE user_id = $1 and bank = $2 and number = $3`, userId, arr[0], arr[1]); err != nil {
 			tx.Rollback()
 			return err
 		}

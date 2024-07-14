@@ -3,9 +3,9 @@ package cloud
 import "github.com/minio/minio-go/v7"
 
 type Cloud struct {
-	client *minio.Client
+	Client *minio.Client
 }
 
 func (c *Cloud) GetClient() *minio.Client {
-	return c.client
+	return c.Client
 }

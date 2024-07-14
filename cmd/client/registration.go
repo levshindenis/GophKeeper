@@ -28,7 +28,11 @@ func (m *model) Registration() {
 	}
 	m.choices = m.currentChoices[m.state]
 	m.helpStr = ""
+
 	if m.state == "menu" {
+		if err = m.cloud.CreateBucket(reg.Login); err != nil {
+			log.Fatalf(err.Error())
+		}
 		if err = tools.MakeFilesDirectory(m.userId); err != nil {
 			log.Fatalf(err.Error())
 		}

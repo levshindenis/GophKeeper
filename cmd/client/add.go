@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,6 @@ func (m *model) AddText() {
 		log.Fatalf(err.Error())
 	}
 	m.state = "texts"
-	m.choices = m.currentChoices[m.state]
 	m.helpStr = ""
 	m.TextsList()
 }
@@ -44,7 +44,30 @@ func (m *model) AddCard() {
 		log.Fatalf(err.Error())
 	}
 	m.state = "cards"
-	m.choices = m.currentChoices[m.state]
 	m.helpStr = ""
 	m.CardsList()
+}
+
+func (m *model) AddFile() {
+	var at []models.File
+
+	arr := strings.Split(m.helpStr, "///")
+
+	at = append(at, models.File{Name: filepath.Base(arr[0]), Comment: arr[1], Favourite: false})
+	if err := m.db.AddFiles(m.userId, at); err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	login, err := m.db.GetLogin(m.userId)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	if err = m.cloud.AddFile(login, arr[0]); err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	m.state = "files"
+	m.helpStr = ""
+	m.FilesList()
 }
