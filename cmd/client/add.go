@@ -1,7 +1,9 @@
 package main
 
 import (
+	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -64,6 +66,22 @@ func (m *model) AddFile() {
 	}
 
 	if err = m.cloud.AddFile(login, arr[0]); err != nil {
+		log.Fatalf(err.Error())
+	}
+	source, err := os.Open(arr[0])
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	defer source.Close()
+
+	destination, err := os.Create("/tmp/keeper/files/" + login + "/" + filepath.Base(arr[0]))
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	if err != nil {
 		log.Fatalf(err.Error())
 	}
 

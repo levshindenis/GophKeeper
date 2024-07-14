@@ -2,6 +2,7 @@ package main
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"log"
 )
 
 func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -31,10 +32,18 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.CardsList()
 			}
 			if m.cursor == 3 {
+				m.state = "favourites"
+				m.FavouritesList()
+				return m, nil
+			}
+			if m.cursor == 4 {
 				m.state = "start"
 				m.choices = m.currentChoices[m.state]
 			}
-			if m.cursor == 4 {
+			if m.cursor == 5 {
+				if err := m.db.Close(); err != nil {
+					log.Fatalf(err.Error())
+				}
 				return m, tea.Quit
 			}
 

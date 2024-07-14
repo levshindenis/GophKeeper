@@ -19,7 +19,7 @@ func (sd *ServerDatabase) ChangeFiles(userId string, binaries []models.ChFile) e
 	for i := range binaries {
 		if _, err = tx.ExecContext(ctx,
 			`UPDATE binaries SET name = $1, comment = $2, favourite = $3 
-                WHERE user_id = $4 and name = $5 and comment = $6 and favourite = $7`,
+                WHERE user_id = $4 and name = $5`,
 			binaries[i].NewName, binaries[i].NewComment, binaries[i].NewFavourite, userId, binaries[i].OldName); err != nil {
 			tx.Rollback()
 			return err

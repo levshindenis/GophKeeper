@@ -31,7 +31,7 @@ func (mh *MyHandler) DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("Cookie")
 	userId := mh.GetCookie().GetUserId(cookie.Value)
 
-	if err := mh.GetCloud().DeleteFiles(userId+"-cloud", dec); err != nil {
+	if err := mh.GetCloud().DeleteFile(userId+"-cloud", "jj"); err != nil {
 		http.Error(w, "Something bad with delete s3 file", http.StatusInternalServerError)
 		return
 	}

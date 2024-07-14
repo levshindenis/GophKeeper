@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"slices"
+	"strings"
 
 	input "github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -91,11 +92,12 @@ func initialModel() model {
 	newModel.nextState["change_card_cvv"] = "change_card_owner"
 	newModel.nextState["change_card_owner"] = "change_card_comment"
 	newModel.nextState["change_card_comment"] = "change_card"
+	newModel.nextState["change_file_name"] = "change_file"
 
 	newModel.currentChoices["start"] = []string{"Регистрация", "Вход", "Выйти из программы"}
 	newModel.currentChoices["repeat"] = []string{"Да", "Нет"}
-	newModel.currentChoices["menu"] = []string{"Показать все тексты", "Показать все файлы", "Показать все карты",
-		"Сменить пользователя", "Выйти из программы"}
+	newModel.currentChoices["menu"] = []string{"Показать все записи", "Показать все файлы", "Показать все карты",
+		"Посмотреть избранное", "Сменить пользователя", "Выйти из программы"}
 
 	if err := tools.MakeBaseDirectories(); err != nil {
 		log.Fatalf(err.Error())
@@ -143,8 +145,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.ListsUpdate(msg)
 	}
 
-	if m.state == "text_view" || m.state == "card_view" {
+	if strings.Contains(m.state, "view") {
 		return m.ItemUpdate(msg)
+	}
+
+	if m.state == "favourites" {
+		return m.FavouritesUpdate(msg)
 	}
 
 	switch msg := msg.(type) {
@@ -170,7 +176,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if m.cursor == 2 {
-				m.cursor = 0
+				if err := m.db.Close(); err != nil {
+					log.Fatalf(err.Error())
+				}
 				return m, tea.Quit
 			}
 		}

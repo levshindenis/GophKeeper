@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/dlgs"
+	"github.com/skratchdot/open-golang/open"
+	"log"
 )
 
 func (m *model) TextsList() {
@@ -31,6 +31,15 @@ func (m *model) CardsList() {
 	m.choices = append(arr, "Добавить карту", "Назад")
 }
 
+func (m *model) FavouritesList() {
+	arr, err := m.db.ListFavourites(m.userId)
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	m.choices = append(arr, "", "Назад")
+	m.cursor = len(m.choices) - 1
+}
+
 func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
@@ -49,7 +58,7 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor = 0
 				m.state = "add_" + m.state[:len(m.state)-1] + "_name"
 				if m.state == "add_file_name" {
-					filePath, flag, err := dlgs.File("Select file", "", false)
+					filePath, flag, err := dlgs.File("Выберите файл для загрузки:", "", false)
 					if err != nil {
 						log.Fatalf(err.Error())
 					}
@@ -76,7 +85,24 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.TextInfo()
 			}
 			if infoType == "file" {
-				m.cursor = 0
+				m.cursor = 4
+				login, err := m.db.GetLogin(m.userId)
+				if err != nil {
+					log.Fatalf(err.Error())
+				}
+
+				filePath := "/tmp/keeper/files/" + login + "/" + m.helpStr
+				if err = open.Run(filePath); err != nil {
+					log.Printf(err.Error())
+				}
+
+				if err = m.cloud.DeleteFile(login, m.helpStr); err != nil {
+					log.Printf(err.Error())
+				}
+				if err = m.cloud.AddFile(login, filePath); err != nil {
+					log.Printf(err.Error())
+				}
+				m.FileInfo()
 			}
 			if infoType == "card" {
 				m.cursor = 8

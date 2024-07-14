@@ -30,7 +30,8 @@ func (m *model) Login() {
 	m.helpStr = ""
 	m.choices = m.currentChoices[m.state]
 	if m.state == "menu" {
-		if err = tools.MakeFilesDirectory(m.userId); err != nil {
+
+		if err = tools.MakeFilesDirectory(mlog.Login); err != nil {
 			log.Fatalf(err.Error())
 		}
 	}

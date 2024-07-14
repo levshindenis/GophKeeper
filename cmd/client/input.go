@@ -37,6 +37,9 @@ func (m model) InputUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == "change_card" {
 				m.ChangeCard()
 			}
+			if m.state == "change_file" {
+				m.ChangeFile()
+			}
 			return m, nil
 		}
 	}
@@ -127,6 +130,10 @@ func (m model) InputView() string {
 	if m.state == "change_card_comment" {
 		return fmt.Sprintf("Введите новый комментарий: (если хотите оставить текущий, нажмите enter)\n%s%s\n%s\n",
 			"Текущий комментарий: ", m.cardItem.Comment, m.textInput.View())
+	}
+	if m.state == "change_file_name" {
+		return fmt.Sprintf("Введите новый комментарий: (если хотите оставить текущий, нажмите enter)\n%s%s\n%s\n",
+			"Текущий комментарий: ", m.fileItem.Comment, m.textInput.View())
 	}
 	return ""
 }

@@ -33,7 +33,7 @@ func (m *model) Registration() {
 		if err = m.cloud.CreateBucket(reg.Login); err != nil {
 			log.Fatalf(err.Error())
 		}
-		if err = tools.MakeFilesDirectory(m.userId); err != nil {
+		if err = tools.MakeFilesDirectory(reg.Login); err != nil {
 			log.Fatalf(err.Error())
 		}
 	}
