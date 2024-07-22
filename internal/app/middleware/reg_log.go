@@ -10,7 +10,7 @@ func RegLog(next http.HandlerFunc, hm *handlers.MyHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("Cookie")
 		if err == nil {
-			if hm.GetCookie().InCookies(cookie.Value) {
+			if hm.GetDB().CheckCookie(cookie.Value) {
 				http.Error(w, "You are already logged in", http.StatusBadRequest)
 				return
 			}

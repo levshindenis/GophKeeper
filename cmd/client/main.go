@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/levshindenis/GophKeeper/internal/app/consts"
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"log"
 	"os"
 	"slices"
@@ -10,9 +12,10 @@ import (
 
 	input "github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
-	"github.com/levshindenis/GophKeeper/internal/app/storages/cloud"
-	"github.com/levshindenis/GophKeeper/internal/app/storages/server_database"
+	"github.com/go-resty/resty/v2"
+
+	"github.com/levshindenis/GophKeeper/internal/app/cloud"
+	"github.com/levshindenis/GophKeeper/internal/app/database"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -33,11 +36,14 @@ type model struct {
 	state          string
 	helpStr        string
 	userId         string
+	secretKey      string
 	choices        []string
+	encChoices     []string
 	nextState      map[string]string
 	currentChoices map[string][]string
+	client         *resty.Client
 	textInput      input.Model
-	db             server_database.ServerDatabase
+	db             database.Database
 	err            models.TeaErr
 	cloud          cloud.Cloud
 	textItem       models.Text
@@ -56,9 +62,12 @@ func initialModel() model {
 		state:          "start",
 		helpStr:        "",
 		userId:         "",
+		secretKey:      "",
+		encChoices:     []string{},
 		textInput:      input.New(),
-		nextState:      make(map[string]string),
-		currentChoices: make(map[string][]string),
+		nextState:      consts.GetNextStatesMap(),
+		currentChoices: consts.GetStatesMap(),
+		client:         resty.New(),
 		err:            models.TeaErr{},
 		textItem:       models.Text{},
 		fileItem:       models.File{},
@@ -66,38 +75,6 @@ func initialModel() model {
 	}
 
 	newModel.textInput.Focus()
-	newModel.nextState["reg_input_login"] = "reg_input_password"
-	newModel.nextState["reg_input_password"] = "reg_input_word"
-	newModel.nextState["reg_input_word"] = "registration"
-	newModel.nextState["log_input_login"] = "log_input_password"
-	newModel.nextState["log_input_password"] = "login"
-	newModel.nextState["add_text_name"] = "add_text_description"
-	newModel.nextState["add_text_description"] = "add_text_comment"
-	newModel.nextState["add_text_comment"] = "add_text"
-	newModel.nextState["add_card_name"] = "add_card_number"
-	newModel.nextState["add_card_number"] = "add_card_month"
-	newModel.nextState["add_card_month"] = "add_card_year"
-	newModel.nextState["add_card_year"] = "add_card_cvv"
-	newModel.nextState["add_card_cvv"] = "add_card_owner"
-	newModel.nextState["add_card_owner"] = "add_card_comment"
-	newModel.nextState["add_card_comment"] = "add_card"
-	newModel.nextState["add_file_comment"] = "add_file"
-	newModel.nextState["change_text_name"] = "change_text_description"
-	newModel.nextState["change_text_description"] = "change_text_comment"
-	newModel.nextState["change_text_comment"] = "change_text"
-	newModel.nextState["change_card_name"] = "change_card_number"
-	newModel.nextState["change_card_number"] = "change_card_month"
-	newModel.nextState["change_card_month"] = "change_card_year"
-	newModel.nextState["change_card_year"] = "change_card_cvv"
-	newModel.nextState["change_card_cvv"] = "change_card_owner"
-	newModel.nextState["change_card_owner"] = "change_card_comment"
-	newModel.nextState["change_card_comment"] = "change_card"
-	newModel.nextState["change_file_name"] = "change_file"
-
-	newModel.currentChoices["start"] = []string{"Регистрация", "Вход", "Выйти из программы"}
-	newModel.currentChoices["repeat"] = []string{"Да", "Нет"}
-	newModel.currentChoices["menu"] = []string{"Показать все записи", "Показать все файлы", "Показать все карты",
-		"Посмотреть избранное", "Сменить пользователя", "Выйти из программы"}
 
 	if err := tools.MakeBaseDirectories(); err != nil {
 		log.Fatalf(err.Error())
@@ -108,9 +85,9 @@ func initialModel() model {
 		log.Fatalf(err.Error())
 	}
 
-	sd := server_database.ServerDatabase{DB: db}
+	sd := database.Database{DB: db}
 
-	if err = sd.MakeTables(); err != nil {
+	if err = sd.MakeTables(""); err != nil {
 		log.Fatalf(err.Error())
 	}
 
@@ -133,24 +110,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.InputUpdate(msg)
 	}
 
-	if m.state == "repeat" {
+	switch {
+	case m.state == "repeat":
 		return m.RepeatUpdate(msg)
-	}
-
-	if m.state == "menu" {
+	case m.state == "menu":
 		return m.MenuUpdate(msg)
-	}
-
-	if ok := slices.Contains([]string{"texts", "files", "cards"}, m.state); ok {
-		return m.ListsUpdate(msg)
-	}
-
-	if strings.Contains(m.state, "view") {
-		return m.ItemUpdate(msg)
-	}
-
-	if m.state == "favourites" {
+	case m.state == "favourites":
 		return m.FavouritesUpdate(msg)
+	case slices.Contains([]string{"texts", "files", "cards"}, m.state):
+		return m.ListsUpdate(msg)
+	case strings.Contains(m.state, "view"):
+		return m.ItemUpdate(msg)
+
 	}
 
 	switch msg := msg.(type) {
@@ -166,16 +137,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter", " ":
-			if m.cursor == 0 {
+			switch m.cursor {
+			case 0:
 				m.state = "reg_input_login"
 				return m, nil
-			}
-			if m.cursor == 1 {
+			case 1:
 				m.cursor = 0
 				m.state = "log_input_login"
 				return m, nil
-			}
-			if m.cursor == 2 {
+			case 2:
 				if err := m.db.Close(); err != nil {
 					log.Fatalf(err.Error())
 				}
@@ -183,7 +153,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-
 	return m, nil
 }
 
@@ -205,4 +174,5 @@ func (m model) View() string {
 		s += fmt.Sprintf("%s %s\n", cursor, choice)
 	}
 	return s
+
 }

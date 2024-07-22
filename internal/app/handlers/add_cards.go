@@ -3,9 +3,13 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-
+	"github.com/joho/godotenv"
 	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 )
 
 func (mh *MyHandler) AddCards(w http.ResponseWriter, r *http.Request) {
@@ -31,11 +35,31 @@ func (mh *MyHandler) AddCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie, _ := r.Cookie("Cookie")
+	login, err := mh.GetDB().GetLogin(cookie.Value)
+	if err != nil {
+		http.Error(w, "Something bad with add text", http.StatusInternalServerError)
+		return
+	}
 
-	userId := mh.GetCookie().GetUserId(cookie.Value)
+	if err = godotenv.Load("../../.env"); err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	if err := mh.GetDB().AddCards(userId, dec); err != nil {
-		http.Error(w, "Something bad with add card", http.StatusInternalServerError)
+	secretKey := os.Getenv(strings.ToUpper(login) + "_SERVER")
+
+	for i := range dec {
+		dec[i].Bank = tools.Encrypt(dec[i].Bank, secretKey)
+		dec[i].Number = tools.Encrypt(dec[i].Number, secretKey)
+		dec[i].Month = tools.Encrypt(dec[i].Month, secretKey)
+		dec[i].Year = tools.Encrypt(dec[i].Year, secretKey)
+		dec[i].CVV = tools.Encrypt(dec[i].CVV, secretKey)
+		dec[i].Owner = tools.Encrypt(dec[i].Owner, secretKey)
+		dec[i].Comment = tools.Encrypt(dec[i].Comment, secretKey)
+		dec[i].Favourite = tools.Encrypt(dec[i].Favourite, secretKey)
+	}
+
+	if err = mh.GetDB().AddCards(login, dec); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

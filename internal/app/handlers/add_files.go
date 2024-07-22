@@ -1,53 +1,60 @@
 package handlers
 
 import (
-	"net/http"
-	"strconv"
-
+	"bytes"
+	"encoding/json"
+	"github.com/joho/godotenv"
 	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 )
 
 func (mh *MyHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
 	var (
-		dbFiles    []models.File
-		cloudFiles []models.CloudFile
+		dec []models.File
+		buf bytes.Buffer
 	)
 
-	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Wrong data type", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := buf.ReadFrom(r.Body); err != nil {
+		http.Error(w, "Something bad with read body", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	if err := json.Unmarshal(buf.Bytes(), &dec); err != nil {
+		http.Error(w, "Something bad with decoding JSON", http.StatusInternalServerError)
+		return
+	}
 
 	cookie, _ := r.Cookie("Cookie")
-	userId := mh.GetCookie().GetUserId(cookie.Value)
-
-	if err := r.ParseMultipartForm(1024); err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
+	login, err := mh.GetDB().GetLogin(cookie.Value)
+	if err != nil {
+		http.Error(w, "Something bad with GetLogin", http.StatusBadRequest)
 		return
 	}
 
-	count, _ := strconv.Atoi(r.Form.Get("count"))
-
-	for i := 1; i <= count; i++ {
-		comment := r.Form.Get("comment" + strconv.Itoa(i))
-		favourite, _ := strconv.ParseBool(r.Form.Get("favourite" + strconv.Itoa(i)))
-
-		f, handler, err := r.FormFile("file" + strconv.Itoa(i))
-		if err != nil {
-			http.Error(w, "Error FormFile", http.StatusInternalServerError)
-			return
-		}
-
-		dbFiles = append(dbFiles, models.File{Name: handler.Filename, Comment: comment, Favourite: favourite})
-		cloudFiles = append(cloudFiles, models.CloudFile{Filename: handler.Filename, Data: f, Size: handler.Size})
-
-		f.Close()
+	if err = godotenv.Load("../../.env"); err != nil {
+		log.Fatal("Error loading .env file")
 	}
 
-	if err := mh.GetCloud().AddFiles(userId+"-cloud", cloudFiles); err != nil {
-		http.Error(w, "Error with AddFiles(cloud)", http.StatusInternalServerError)
-		return
+	secretKey := os.Getenv(strings.ToUpper(login) + "_SERVER")
+
+	for i := range dec {
+		dec[i].Name = tools.Encrypt(dec[i].Name, secretKey)
+		dec[i].Comment = tools.Encrypt(dec[i].Comment, secretKey)
+		dec[i].Favourite = tools.Encrypt(dec[i].Favourite, secretKey)
 	}
 
-	if err := mh.GetDB().AddFiles(userId, dbFiles); err != nil {
-		http.Error(w, "Error with AddFiles(db)", http.StatusInternalServerError)
+	if err = mh.GetDB().AddFiles(login, dec); err != nil {
+		http.Error(w, "Something bad with add text", http.StatusInternalServerError)
 		return
 	}
 

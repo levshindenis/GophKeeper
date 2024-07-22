@@ -1,8 +1,10 @@
 package main
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
 	"log"
+	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -19,29 +21,89 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter", " ":
-			if m.cursor == 0 {
+			switch m.cursor {
+			case 0:
 				m.state = "texts"
 				m.TextsList()
-			}
-			if m.cursor == 1 {
+			case 1:
 				m.state = "files"
 				m.FilesList()
-			}
-			if m.cursor == 2 {
+			case 2:
 				m.state = "cards"
 				m.CardsList()
-			}
-			if m.cursor == 3 {
+			case 3:
 				m.state = "favourites"
 				m.FavouritesList()
 				return m, nil
-			}
-			if m.cursor == 4 {
+			case 4:
+				var (
+					localTime  string
+					serverTime string
+				)
+
 				m.state = "start"
 				m.choices = m.currentChoices[m.state]
-			}
-			if m.cursor == 5 {
-				if err := m.db.Close(); err != nil {
+
+				resp, err := m.client.R().Get("http://localhost:8080" + "/user/update-time")
+				if err == nil {
+					serverTime = string(resp.Body())
+
+					localTime, err = m.db.GetUpdateTime(m.userId)
+					if err != nil {
+						log.Fatalf(err.Error())
+					}
+
+					if localTime > serverTime {
+						m.ToServer(localTime)
+					}
+
+					if _, err = m.client.R().Get("http://localhost:8080" + "/user/logout"); err != nil {
+						log.Fatalf(err.Error())
+					}
+				}
+				if err != nil {
+					panic(err)
+				}
+			case 5:
+				m.state = "start"
+				m.choices = m.currentChoices[m.state]
+
+				if err := m.db.DeleteAccount(m.userId, "local"); err != nil {
+					log.Fatalf(err.Error())
+				}
+				if _, err := m.client.R().Get("http://localhost:8080" + "/user/delete-account"); err != nil {
+					log.Fatalf(err.Error())
+				}
+				if err := os.RemoveAll("/tmp/keeper/files/" + m.userId); err != nil {
+					log.Fatalf(err.Error())
+				}
+				if err := m.cloud.DeleteAccount(m.userId); err != nil {
+					log.Fatalf(err.Error())
+				}
+			case 6:
+				var (
+					localTime  string
+					serverTime string
+				)
+
+				resp, err := m.client.R().Get("http://localhost:8080" + "/user/update-time")
+				if err == nil {
+					serverTime = string(resp.Body())
+
+					localTime, err = m.db.GetUpdateTime(m.userId)
+					if err != nil {
+						log.Fatalf(err.Error())
+					}
+
+					if localTime > serverTime {
+						m.ToServer(localTime)
+					}
+				}
+				if err != nil {
+					panic(err)
+				}
+
+				if err = m.db.Close(); err != nil {
 					log.Fatalf(err.Error())
 				}
 				return m, tea.Quit

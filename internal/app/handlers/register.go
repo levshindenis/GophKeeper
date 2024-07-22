@@ -3,10 +3,14 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-
+	"fmt"
 	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 )
 
 func (mh *MyHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -36,9 +40,9 @@ func (mh *MyHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flag, userId, err := mh.GetDB().AddUser(dec)
+	cookie, flag, err := mh.GetDB().AddUser(dec)
 	if err != nil {
-		http.Error(w, "Something bad with AddUser", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -47,19 +51,27 @@ func (mh *MyHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := tools.GenerateCookie(userId)
+	cryptoBytes, err := tools.GenerateCrypto(12)
 	if err != nil {
-		http.Error(w, "Something bad generate cookie", http.StatusInternalServerError)
+		log.Fatalf(err.Error())
+	}
+	secretKey := fmt.Sprintf("%x", cryptoBytes)
+
+	f, err := os.OpenFile("../../.env", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	if _, err = f.WriteString(strings.ToUpper(dec.Login) + "_SERVER=" + secretKey + "\n"); err != nil {
+		log.Fatalf(err.Error())
+	}
+	f.Close()
+
+	if err = mh.GetDB().AddUpdateTime(dec.Login, tools.Encrypt(time.Now().Format(time.RFC3339), secretKey)); err != nil {
+		http.Error(w, "Something bad with SetUpdateTime", http.StatusInternalServerError)
 		return
 	}
 
-	//if err = mh.GetCloud().CreateBucket(userId + "-cloud"); err != nil {
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
-
 	http.SetCookie(w, &http.Cookie{Name: "Cookie", Value: cookie})
-	mh.GetCookie().Add(cookie, userId)
 
 	w.WriteHeader(http.StatusCreated)
 }

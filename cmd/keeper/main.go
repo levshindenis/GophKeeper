@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/levshindenis/GophKeeper/internal/app/router"
 	"log"
 	"net/http"
 
 	"github.com/levshindenis/GophKeeper/internal/app/config"
 	"github.com/levshindenis/GophKeeper/internal/app/handlers"
-	"github.com/levshindenis/GophKeeper/internal/app/router"
 )
 
 func main() {
@@ -15,12 +15,12 @@ func main() {
 		h    handlers.MyHandler
 	)
 
-	if err := conf.ParseFlags(); err != nil {
+	if err := conf.Parse(); err != nil {
 		panic(err)
 	}
 
-	if conf.GetDBAddress() == "" {
-		log.Fatalf("Input db address")
+	if conf.GetDBAddress() == "" || conf.GetServerAddress() == "" {
+		log.Fatalf("Input config params")
 	}
 
 	if err := h.Init(conf); err != nil {

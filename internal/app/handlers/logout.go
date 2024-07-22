@@ -7,8 +7,6 @@ import (
 func (mh *MyHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("Cookie")
 
-	mh.GetCookie().Delete(cookie.Value)
-
 	c := &http.Cookie{
 		Name:   cookie.Name,
 		Value:  "",
@@ -16,6 +14,11 @@ func (mh *MyHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		MaxAge: -1}
 
 	http.SetCookie(w, c)
+
+	if err := mh.GetDB().SetCookie(cookie.Value, ""); err != nil {
+		http.Error(w, "Something bas with delete cookie from db", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

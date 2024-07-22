@@ -3,9 +3,11 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-
 	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"math/rand"
+	"net/http"
+	"strconv"
+
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
@@ -36,20 +38,23 @@ func (mh *MyHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := mh.GetDB().CheckUser(dec)
-	if err != nil {
+	if !mh.GetDB().CheckUser(dec) {
 		http.Error(w, "Wrong login or password", http.StatusBadRequest)
 		return
 	}
 
-	cookie, err := tools.GenerateCookie(userId)
+	cookie, err := tools.GenerateCookie(strconv.Itoa(rand.Intn(100)))
 	if err != nil {
-		http.Error(w, "Something bad generate cookie", http.StatusInternalServerError)
+		http.Error(w, "Something bad with generate cookie", http.StatusBadRequest)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Cookie", Value: cookie})
-	mh.GetCookie().Add(cookie, userId)
+
+	if err = mh.GetDB().SetCookie(cookie, dec.Login); err != nil {
+		http.Error(w, "Something bad with SetCookie", http.StatusBadRequest)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

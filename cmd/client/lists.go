@@ -1,32 +1,52 @@
 package main
 
 import (
+	"log"
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/dlgs"
 	"github.com/skratchdot/open-golang/open"
-	"log"
+
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
 func (m *model) TextsList() {
+	m.encChoices = []string{}
 	arr, err := m.db.ListTexts(m.userId)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Fatalf(err.Error())
+	}
+	for i := range arr {
+		m.encChoices = append(m.encChoices, arr[i])
+		arr[i] = tools.Decrypt(arr[i], m.secretKey)
 	}
 	m.choices = append(arr, "Добавить запись", "Назад")
 }
 
 func (m *model) FilesList() {
+	m.encChoices = []string{}
 	arr, err := m.db.ListFiles(m.userId)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Fatalf(err.Error())
+	}
+	for i := range arr {
+		m.encChoices = append(m.encChoices, arr[i])
+		arr[i] = tools.Decrypt(arr[i], m.secretKey)
 	}
 	m.choices = append(arr, "Добавить файл", "Назад")
 }
 
 func (m *model) CardsList() {
+	m.encChoices = []string{}
 	arr, err := m.db.ListCards(m.userId)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Fatalf(err.Error())
+	}
+	for i := range arr {
+		m.encChoices = append(m.encChoices, arr[i])
+		arr[i] = tools.Decrypt(strings.Split(arr[i], "///")[0], m.secretKey) + " " +
+			tools.Decrypt(strings.Split(arr[i], "///")[1], m.secretKey)
 	}
 	m.choices = append(arr, "Добавить карту", "Назад")
 }
@@ -35,6 +55,17 @@ func (m *model) FavouritesList() {
 	arr, err := m.db.ListFavourites(m.userId)
 	if err != nil {
 		log.Printf(err.Error())
+	}
+	for i := range arr {
+		switch {
+		case arr[i] == "Cards:" || arr[i] == "Files:" || arr[i] == "Texts:":
+			continue
+		case len(strings.Split(arr[i], "///")) > 1:
+			arr[i] = "    " + tools.Decrypt(strings.Split(arr[i], "///")[0], m.secretKey) + " " +
+				tools.Decrypt(strings.Split(arr[i], "///")[1], m.secretKey)
+		default:
+			arr[i] = "    " + tools.Decrypt(arr[i], m.secretKey)
+		}
 	}
 	m.choices = append(arr, "", "Назад")
 	m.cursor = len(m.choices) - 1
@@ -53,8 +84,9 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
-		case "enter", " ":
-			if m.cursor == len(m.choices)-2 {
+		case "enter":
+			switch m.cursor {
+			case len(m.choices) - 2:
 				m.cursor = 0
 				m.state = "add_" + m.state[:len(m.state)-1] + "_name"
 				if m.state == "add_file_name" {
@@ -70,41 +102,37 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.state = "add_file_comment"
 				}
 				return m, nil
-			}
-			if m.cursor == len(m.choices)-1 {
+			case len(m.choices) - 1:
 				m.cursor = 0
 				m.state = "menu"
 				m.choices = m.currentChoices[m.state]
 				return m, nil
 			}
+
 			infoType := m.state[:len(m.state)-1]
 			m.state = infoType + "_view"
-			m.helpStr = m.choices[m.cursor]
-			if infoType == "text" {
+			m.helpStr = m.encChoices[m.cursor]
+
+			switch infoType {
+			case "text":
 				m.cursor = 5
 				m.TextInfo()
-			}
-			if infoType == "file" {
+			case "file":
 				m.cursor = 4
-				login, err := m.db.GetLogin(m.userId)
-				if err != nil {
-					log.Fatalf(err.Error())
-				}
 
-				filePath := "/tmp/keeper/files/" + login + "/" + m.helpStr
-				if err = open.Run(filePath); err != nil {
+				filePath := "/tmp/keeper/files/" + m.userId + "/" + tools.Decrypt(m.helpStr, m.secretKey)
+				if err := open.Run(filePath); err != nil {
 					log.Printf(err.Error())
 				}
 
-				if err = m.cloud.DeleteFile(login, m.helpStr); err != nil {
+				if err := m.cloud.DeleteFile(m.userId, tools.Decrypt(m.helpStr, m.secretKey)); err != nil {
 					log.Printf(err.Error())
 				}
-				if err = m.cloud.AddFile(login, filePath); err != nil {
+				if err := m.cloud.AddFile(m.userId, filePath); err != nil {
 					log.Printf(err.Error())
 				}
 				m.FileInfo()
-			}
-			if infoType == "card" {
+			case "card":
 				m.cursor = 8
 				m.CardInfo()
 			}

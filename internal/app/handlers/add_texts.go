@@ -3,9 +3,13 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
-
+	"github.com/joho/godotenv"
 	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 )
 
 func (mh *MyHandler) AddTexts(w http.ResponseWriter, r *http.Request) {
@@ -31,9 +35,26 @@ func (mh *MyHandler) AddTexts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie, _ := r.Cookie("Cookie")
-	userId := mh.GetCookie().GetUserId(cookie.Value)
+	login, err := mh.GetDB().GetLogin(cookie.Value)
+	if err != nil {
+		http.Error(w, "Something bad with GetLogin", http.StatusBadRequest)
+		return
+	}
 
-	if err := mh.GetDB().AddTexts(userId, dec); err != nil {
+	if err = godotenv.Load("../../.env"); err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	secretKey := os.Getenv(strings.ToUpper(login) + "_SERVER")
+
+	for i := range dec {
+		dec[i].Name = tools.Encrypt(dec[i].Name, secretKey)
+		dec[i].Description = tools.Encrypt(dec[i].Description, secretKey)
+		dec[i].Comment = tools.Encrypt(dec[i].Comment, secretKey)
+		dec[i].Favourite = tools.Encrypt(dec[i].Favourite, secretKey)
+	}
+
+	if err = mh.GetDB().AddTexts(login, dec); err != nil {
 		http.Error(w, "Something bad with add text", http.StatusInternalServerError)
 		return
 	}
