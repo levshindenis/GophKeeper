@@ -2,19 +2,21 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/joho/godotenv"
-	"github.com/levshindenis/GophKeeper/internal/app/tools"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
+
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
 func (mh *MyHandler) GetUserFiles(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("Cookie")
 	login, err := mh.GetDB().GetLogin(cookie.Value)
 	if err != nil {
-		http.Error(w, "Something bad with GetLogin", http.StatusBadRequest)
+		http.Error(w, "Something bad with GetLogin", http.StatusInternalServerError)
 		return
 	}
 

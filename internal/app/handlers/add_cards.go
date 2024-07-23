@@ -3,13 +3,15 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/joho/godotenv"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
-	"github.com/levshindenis/GophKeeper/internal/app/tools"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
+
+	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
 func (mh *MyHandler) AddCards(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +61,7 @@ func (mh *MyHandler) AddCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = mh.GetDB().AddCards(login, dec); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Something bad with AddCards", http.StatusInternalServerError)
 		return
 	}
 

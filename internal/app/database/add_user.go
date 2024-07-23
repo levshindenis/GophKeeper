@@ -2,11 +2,11 @@ package database
 
 import (
 	"context"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"math/rand"
 	"strconv"
 	"time"
 
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 

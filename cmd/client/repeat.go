@@ -20,12 +20,30 @@ func (m model) RepeatUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter":
-			if m.cursor == 0 {
+			switch m.cursor {
+			case 0:
 				m.state = m.err.ToState
 				return m, nil
+			case 1:
+				switch m.err.ToState {
+				case "reg_input_login", "log_input_login":
+					return m, tea.Quit
+				case "texts":
+					m.state = "texts"
+					m.TextsList()
+				case "files":
+					m.state = "files"
+					m.FilesList()
+				case "cards":
+					m.state = "cards"
+					m.CardsList()
+				default:
+					m.state = "menu"
+					m.choices = m.currentChoices[m.state]
+				}
+				m.cursor = 0
+				return m, nil
 			}
-			m.cursor = 0
-			return m, tea.Quit
 		}
 	}
 

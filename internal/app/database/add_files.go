@@ -2,8 +2,9 @@ package database
 
 import (
 	"context"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"time"
+
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 )
 
 func (sd *Database) AddFiles(userId string, binaries []models.File) error {

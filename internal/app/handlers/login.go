@@ -3,11 +3,11 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"math/rand"
 	"net/http"
 	"strconv"
 
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
@@ -34,7 +34,7 @@ func (mh *MyHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if dec.Login == "" || dec.Password == "" {
-		http.Error(w, "Wrong data", http.StatusBadRequest)
+		http.Error(w, "Empty data", http.StatusBadRequest)
 		return
 	}
 
@@ -45,14 +45,14 @@ func (mh *MyHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := tools.GenerateCookie(strconv.Itoa(rand.Intn(100)))
 	if err != nil {
-		http.Error(w, "Something bad with generate cookie", http.StatusBadRequest)
+		http.Error(w, "Something bad with generate cookie", http.StatusInternalServerError)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{Name: "Cookie", Value: cookie})
 
 	if err = mh.GetDB().SetCookie(cookie, dec.Login); err != nil {
-		http.Error(w, "Something bad with SetCookie", http.StatusBadRequest)
+		http.Error(w, "Something bad with SetCookie", http.StatusInternalServerError)
 		return
 	}
 

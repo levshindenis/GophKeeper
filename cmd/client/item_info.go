@@ -1,21 +1,21 @@
 package main
 
 import (
-	"github.com/levshindenis/GophKeeper/internal/app/models"
-	"log"
 	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/dlgs"
 
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
 func (m *model) TextInfo() {
 	item, err := m.db.GetText(m.userId, m.helpStr)
 	if err != nil {
-		log.Printf(err.Error())
+		m.ErrorState(err.Error(), "texts")
+		return
 	}
 	m.textItem = item
 	arr := []string{"Название записи: " + tools.Decrypt(item.Name, m.secretKey),
@@ -31,7 +31,8 @@ func (m *model) TextInfo() {
 func (m *model) CardInfo() {
 	item, err := m.db.GetCard(m.userId, m.helpStr)
 	if err != nil {
-		log.Printf(err.Error())
+		m.ErrorState(err.Error(), "cards")
+		return
 	}
 	m.cardItem = item
 	arr := []string{
@@ -51,7 +52,8 @@ func (m *model) CardInfo() {
 func (m *model) FileInfo() {
 	item, err := m.db.GetFile(m.userId, m.helpStr)
 	if err != nil {
-		log.Printf(err.Error())
+		m.ErrorState(err.Error(), "files")
+		return
 	}
 	m.fileItem = item
 	arr := []string{
@@ -85,7 +87,8 @@ func (m model) ItemUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.state == "change_file_name" {
 					filePath, _, err := dlgs.File("Выберите файл для замены:", "", false)
 					if err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "files")
+						return m, nil
 					}
 					m.helpStr += filePath + "///"
 				}
@@ -101,8 +104,9 @@ func (m model) ItemUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 							NewDescription: m.textItem.Description, NewComment: m.textItem.Comment,
 							NewFavourite: "Нет"}
 					}
-					if err := m.db.ChangeTexts(m.userId, arr); err != nil {
-						log.Fatalf(err.Error())
+					if err := m.db.ChangeText(m.userId, arr); err != nil {
+						m.ErrorState(err.Error(), "texts")
+						return m, nil
 					}
 					m.TextInfo()
 					m.cursor = 5
@@ -113,8 +117,9 @@ func (m model) ItemUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 						arr = models.ChFile{OldName: m.fileItem.Name, NewName: m.fileItem.Name,
 							NewComment: m.fileItem.Comment, NewFavourite: "Нет"}
 					}
-					if err := m.db.ChangeFiles(m.userId, arr); err != nil {
-						log.Fatalf(err.Error())
+					if err := m.db.ChangeFile(m.userId, arr); err != nil {
+						m.ErrorState(err.Error(), "files")
+						return m, nil
 					}
 					m.FileInfo()
 					m.cursor = 4
@@ -130,7 +135,8 @@ func (m model) ItemUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 							NewComment: m.cardItem.Comment, NewFavourite: "Нет"}
 					}
 					if err := m.db.ChangeCard(m.userId, arr); err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "cards")
+						return m, nil
 					}
 					m.CardInfo()
 					m.cursor = 8
@@ -140,23 +146,28 @@ func (m model) ItemUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch {
 				case strings.Contains(m.state, "text"):
 					if err := m.db.DeleteTexts(m.userId, []string{m.helpStr}, ""); err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "texts")
+						return m, nil
 					}
 					m.TextsList()
 				case strings.Contains(m.state, "file"):
 					if err := m.db.DeleteFiles(m.userId, []string{m.helpStr}, ""); err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "files")
+						return m, nil
 					}
 					if err := m.cloud.DeleteFile(m.userId, "/tmp/keeper/files/"+m.userId+"/"+m.helpStr); err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "files")
+						return m, nil
 					}
 					if err := os.Remove("/tmp/keeper/files/" + m.userId + "/" + m.helpStr); err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "files")
+						return m, nil
 					}
 					m.FilesList()
 				case strings.Contains(m.state, "card"):
 					if err := m.db.DeleteCards(m.userId, []string{m.helpStr}, ""); err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "cards")
+						return m, nil
 					}
 					m.CardsList()
 				}

@@ -1,13 +1,12 @@
 package main
 
 import (
-	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
@@ -32,8 +31,9 @@ func (m *model) ChangeText() {
 	at = models.ChText{OldName: m.textItem.Name, NewName: newName,
 		NewDescription: newDescription, NewComment: newComment, NewFavourite: m.textItem.Favourite}
 
-	if err := m.db.ChangeTexts(m.userId, at); err != nil {
-		log.Fatalf(err.Error())
+	if err := m.db.ChangeText(m.userId, at); err != nil {
+		m.ErrorState(err.Error(), "change_text_name")
+		return
 	}
 
 	m.state = "text_view"
@@ -81,7 +81,8 @@ func (m *model) ChangeCard() {
 		NewComment: newComment, NewFavourite: m.cardItem.Favourite}
 
 	if err := m.db.ChangeCard(m.userId, at); err != nil {
-		log.Fatalf(err.Error())
+		m.ErrorState(err.Error(), "change_card_name")
+		return
 	}
 
 	m.state = "card_view"
@@ -107,37 +108,44 @@ func (m *model) ChangeFile() {
 	at = models.ChFile{OldName: m.fileItem.Name, NewName: tools.Encrypt(filepath.Base(newName), m.secretKey),
 		NewComment: newComment, NewFavourite: m.fileItem.Favourite}
 
-	if err := m.db.ChangeFiles(m.userId, at); err != nil {
-		log.Fatalf(err.Error())
+	if err := m.db.ChangeFile(m.userId, at); err != nil {
+		m.ErrorState(err.Error(), "change_file_name")
+		return
 	}
 
 	if newName != m.fileItem.Name {
 		if err := m.cloud.DeleteFile(m.userId, arr[0]); err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "change_file_name")
+			return
 		}
 		if err := m.cloud.AddFile(m.userId, newName); err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "change_file_name")
+			return
 		}
 
 		if err := os.Remove("/tmp/keeper/files/" + m.userId + "/" + arr[0]); err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "change_file_name")
+			return
 		}
 
 		source, err := os.Open(newName)
 		if err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "change_file_name")
+			return
 		}
 		defer source.Close()
 
 		destination, err := os.Create("/tmp/keeper/files/" + m.userId + "/" + filepath.Base(newName))
 		if err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "change_file_name")
+			return
 		}
 		defer destination.Close()
 
 		_, err = io.Copy(destination, source)
 		if err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "change_file_name")
+			return
 		}
 	}
 

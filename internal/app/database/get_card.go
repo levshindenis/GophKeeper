@@ -2,9 +2,10 @@ package database
 
 import (
 	"context"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"strings"
 	"time"
+
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 )
 
 func (sd *Database) GetCard(userId string, number string) (models.Card, error) {

@@ -9,7 +9,7 @@ func (mh *MyHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 	login, err := mh.GetDB().GetLogin(cookie.Value)
 	if err != nil {
-		http.Error(w, "Something bad with GetLogin", http.StatusBadRequest)
+		http.Error(w, "Something bad with GetLogin", http.StatusInternalServerError)
 		return
 	}
 

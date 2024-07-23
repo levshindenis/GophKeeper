@@ -121,7 +121,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.ListsUpdate(msg)
 	case strings.Contains(m.state, "view"):
 		return m.ItemUpdate(msg)
-
 	}
 
 	switch msg := msg.(type) {
@@ -146,9 +145,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = "log_input_login"
 				return m, nil
 			case 2:
-				if err := m.db.Close(); err != nil {
-					log.Fatalf(err.Error())
-				}
+				m.db.Close()
 				return m, tea.Quit
 			}
 		}

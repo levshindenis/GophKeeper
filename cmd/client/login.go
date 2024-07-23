@@ -3,13 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
-	"log"
 	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
 
+	"github.com/levshindenis/GophKeeper/internal/app/models"
 	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
@@ -18,21 +17,20 @@ func (m *model) Login() {
 	user := models.Login{Login: arr[0], Password: arr[1]}
 	jsonUser, err := json.Marshal(user)
 	if err != nil {
-		panic(err)
-	}
-
-	resp, err := m.client.R().SetBody(bytes.NewBuffer(jsonUser)).Post("http://localhost:8080" + "/login")
-	if err != nil {
-		panic(err)
+		m.ErrorState(err.Error(), "log_input_login")
+		return
 	}
 
 	m.state = "menu"
 	m.userId = user.Login
-	if resp.StatusCode() != 200 {
-		m.err.Err = string(resp.Body())
-		m.state = "repeat"
-		m.err.ToState = "log_input_login"
-		m.userId = ""
+
+	resp, err := m.client.R().SetBody(bytes.NewBuffer(jsonUser)).Post("http://localhost:8080" + "/login")
+	if resp.StatusCode() != 200 || err != nil {
+		m.ErrorState(string(resp.Body()), "log_input_login")
+		if err != nil {
+			m.err.Err = err.Error()
+		}
+		return
 	}
 
 	m.helpStr = ""
@@ -43,42 +41,56 @@ func (m *model) Login() {
 		)
 
 		if err = tools.MakeFilesDirectory(m.userId); err != nil {
-			log.Fatalf(err.Error())
+			m.ErrorState(err.Error(), "log_input_login")
+			return
 		}
 
 		resp, err = m.client.R().Get("http://localhost:8080" + "/user/update-time")
-		if err == nil {
-			serverTime = string(resp.Body())
+		if resp.StatusCode() != 200 || err != nil {
+			m.ErrorState(string(resp.Body()), "log_input_login")
+			if err != nil {
+				m.err.Err = err.Error()
+			}
+			return
+		}
 
-			localTime, err1 := m.db.GetUpdateTime(m.userId)
-			if err1 != nil {
+		serverTime = string(resp.Body())
+
+		localTime, err1 := m.db.GetUpdateTime(m.userId)
+		if err1 != nil {
+			m.ToLocal()
+			if err2 := m.db.AddUpdateTime(m.userId, serverTime); err2 != nil {
+				m.ErrorState(err2.Error(), "log_input_login")
+				return
+			}
+		} else {
+			if localTime > serverTime {
+				m.ToServer(localTime)
+			}
+			if localTime < serverTime {
+				if err2 := m.db.DeleteTexts(m.userId, nil, "all"); err2 != nil {
+					m.ErrorState(err2.Error(), "log_input_login")
+					return
+				}
+				if err2 := m.db.DeleteFiles(m.userId, nil, "all"); err2 != nil {
+					m.ErrorState(err2.Error(), "log_input_login")
+					return
+				}
+				if err2 := m.db.DeleteCards(m.userId, nil, "all"); err2 != nil {
+					m.ErrorState(err2.Error(), "log_input_login")
+					return
+				}
 				m.ToLocal()
-				if err2 := m.db.AddUpdateTime(m.userId, serverTime); err2 != nil {
-					log.Fatalf(err2.Error())
-				}
-			} else {
-				if localTime > serverTime {
-					m.ToServer(localTime)
-				}
-				if localTime < serverTime {
-					if err2 := m.db.DeleteTexts(m.userId, nil, "all"); err2 != nil {
-						log.Fatalf(err2.Error())
-					}
-					if err2 := m.db.DeleteFiles(m.userId, nil, "all"); err2 != nil {
-						log.Fatalf(err2.Error())
-					}
-					if err2 := m.db.DeleteCards(m.userId, nil, "all"); err2 != nil {
-						log.Fatalf(err2.Error())
-					}
-					m.ToLocal()
-					if err2 := m.db.SetUpdateTime(m.userId, serverTime); err2 != nil {
-						log.Fatalf(err2.Error())
-					}
+				if err2 := m.db.SetUpdateTime(m.userId, serverTime); err2 != nil {
+					m.ErrorState(err2.Error(), "log_input_login")
+					return
 				}
 			}
 		}
+
 		if err = godotenv.Load("../../.env"); err != nil {
-			log.Fatal("Error loading .env file")
+			m.ErrorState(err.Error(), "log_input_login")
+			return
 		}
 
 		m.secretKey = os.Getenv(strings.ToUpper(m.userId) + "_LOCAL")

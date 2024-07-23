@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -45,40 +44,48 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.choices = m.currentChoices[m.state]
 
 				resp, err := m.client.R().Get("http://localhost:8080" + "/user/update-time")
-				if err == nil {
-					serverTime = string(resp.Body())
-
-					localTime, err = m.db.GetUpdateTime(m.userId)
+				if resp.StatusCode() != 200 || err != nil {
+					m.ErrorState(string(resp.Body()), "log_input_login")
 					if err != nil {
-						log.Fatalf(err.Error())
+						m.err.Err = err.Error()
 					}
-
-					if localTime > serverTime {
-						m.ToServer(localTime)
-					}
-
-					if _, err = m.client.R().Get("http://localhost:8080" + "/user/logout"); err != nil {
-						log.Fatalf(err.Error())
-					}
+					return m, nil
 				}
+				serverTime = string(resp.Body())
+
+				localTime, err = m.db.GetUpdateTime(m.userId)
 				if err != nil {
-					panic(err)
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
+				}
+
+				if localTime > serverTime {
+					m.ToServer(localTime)
+				}
+
+				if _, err = m.client.R().Get("http://localhost:8080" + "/user/logout"); err != nil {
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
 				}
 			case 5:
 				m.state = "start"
 				m.choices = m.currentChoices[m.state]
 
 				if err := m.db.DeleteAccount(m.userId, "local"); err != nil {
-					log.Fatalf(err.Error())
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
 				}
 				if _, err := m.client.R().Get("http://localhost:8080" + "/user/delete-account"); err != nil {
-					log.Fatalf(err.Error())
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
 				}
 				if err := os.RemoveAll("/tmp/keeper/files/" + m.userId); err != nil {
-					log.Fatalf(err.Error())
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
 				}
 				if err := m.cloud.DeleteAccount(m.userId); err != nil {
-					log.Fatalf(err.Error())
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
 				}
 			case 6:
 				var (
@@ -87,24 +94,29 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 
 				resp, err := m.client.R().Get("http://localhost:8080" + "/user/update-time")
-				if err == nil {
-					serverTime = string(resp.Body())
-
-					localTime, err = m.db.GetUpdateTime(m.userId)
+				if resp.StatusCode() != 200 || err != nil {
+					m.ErrorState(string(resp.Body()), "log_input_login")
 					if err != nil {
-						log.Fatalf(err.Error())
+						m.err.Err = err.Error()
 					}
-
-					if localTime > serverTime {
-						m.ToServer(localTime)
-					}
+					return m, nil
 				}
+
+				serverTime = string(resp.Body())
+
+				localTime, err = m.db.GetUpdateTime(m.userId)
 				if err != nil {
-					panic(err)
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
+				}
+
+				if localTime > serverTime {
+					m.ToServer(localTime)
 				}
 
 				if err = m.db.Close(); err != nil {
-					log.Fatalf(err.Error())
+					m.ErrorState(err.Error(), "menu")
+					return m, nil
 				}
 				return m, tea.Quit
 			}

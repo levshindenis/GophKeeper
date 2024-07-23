@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
-	"github.com/levshindenis/GophKeeper/internal/app/tools"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
 func (mh *MyHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +37,7 @@ func (mh *MyHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if dec.Login == "" || dec.Password == "" || dec.Word == "" {
-		http.Error(w, "Wrong data", http.StatusBadRequest)
+		http.Error(w, "Empty data", http.StatusBadRequest)
 		return
 	}
 

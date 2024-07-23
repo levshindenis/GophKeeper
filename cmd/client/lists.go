@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,7 +14,8 @@ func (m *model) TextsList() {
 	m.encChoices = []string{}
 	arr, err := m.db.ListTexts(m.userId)
 	if err != nil {
-		log.Fatalf(err.Error())
+		m.ErrorState(err.Error(), "main")
+		return
 	}
 	for i := range arr {
 		m.encChoices = append(m.encChoices, arr[i])
@@ -28,7 +28,8 @@ func (m *model) FilesList() {
 	m.encChoices = []string{}
 	arr, err := m.db.ListFiles(m.userId)
 	if err != nil {
-		log.Fatalf(err.Error())
+		m.ErrorState(err.Error(), "main")
+		return
 	}
 	for i := range arr {
 		m.encChoices = append(m.encChoices, arr[i])
@@ -41,7 +42,8 @@ func (m *model) CardsList() {
 	m.encChoices = []string{}
 	arr, err := m.db.ListCards(m.userId)
 	if err != nil {
-		log.Fatalf(err.Error())
+		m.ErrorState(err.Error(), "main")
+		return
 	}
 	for i := range arr {
 		m.encChoices = append(m.encChoices, arr[i])
@@ -54,7 +56,8 @@ func (m *model) CardsList() {
 func (m *model) FavouritesList() {
 	arr, err := m.db.ListFavourites(m.userId)
 	if err != nil {
-		log.Printf(err.Error())
+		m.ErrorState(err.Error(), "main")
+		return
 	}
 	for i := range arr {
 		switch {
@@ -92,7 +95,7 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.state == "add_file_name" {
 					filePath, flag, err := dlgs.File("Выберите файл для загрузки:", "", false)
 					if err != nil {
-						log.Fatalf(err.Error())
+						m.ErrorState(err.Error(), "files")
 					}
 					if !flag {
 						m.state = "files"
@@ -122,14 +125,17 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				filePath := "/tmp/keeper/files/" + m.userId + "/" + tools.Decrypt(m.helpStr, m.secretKey)
 				if err := open.Run(filePath); err != nil {
-					log.Printf(err.Error())
+					m.ErrorState(err.Error(), "files")
+					return m, nil
 				}
 
 				if err := m.cloud.DeleteFile(m.userId, tools.Decrypt(m.helpStr, m.secretKey)); err != nil {
-					log.Printf(err.Error())
+					m.ErrorState(err.Error(), "files")
+					return m, nil
 				}
 				if err := m.cloud.AddFile(m.userId, filePath); err != nil {
-					log.Printf(err.Error())
+					m.ErrorState(err.Error(), "files")
+					return m, nil
 				}
 				m.FileInfo()
 			case "card":

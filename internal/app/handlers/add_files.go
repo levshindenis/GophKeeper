@@ -3,13 +3,15 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/joho/godotenv"
-	"github.com/levshindenis/GophKeeper/internal/app/models"
-	"github.com/levshindenis/GophKeeper/internal/app/tools"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
+
+	"github.com/levshindenis/GophKeeper/internal/app/models"
+	"github.com/levshindenis/GophKeeper/internal/app/tools"
 )
 
 func (mh *MyHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +39,7 @@ func (mh *MyHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
 	cookie, _ := r.Cookie("Cookie")
 	login, err := mh.GetDB().GetLogin(cookie.Value)
 	if err != nil {
-		http.Error(w, "Something bad with GetLogin", http.StatusBadRequest)
+		http.Error(w, "Something bad with GetLogin", http.StatusInternalServerError)
 		return
 	}
 
@@ -54,7 +56,7 @@ func (mh *MyHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = mh.GetDB().AddFiles(login, dec); err != nil {
-		http.Error(w, "Something bad with add text", http.StatusInternalServerError)
+		http.Error(w, "Something bad with AddFiles", http.StatusInternalServerError)
 		return
 	}
 
