@@ -2,16 +2,14 @@ package cloud
 
 import (
 	"context"
-
 	"github.com/minio/minio-go/v7"
+	"path"
 )
 
-func (c *Cloud) GetFile(userId string, name string) (*minio.Object, error) {
-	object, err := c.Client.GetObject(context.Background(), userId, name, minio.GetObjectOptions{})
-	if err != nil {
-		return nil, err
+func (c *Cloud) GetFile(userId string, name string, dir string) error {
+	if err := c.Client.FGetObject(context.Background(), userId, name, path.Join(dir, userId, name),
+		minio.GetObjectOptions{}); err != nil {
+		return err
 	}
-	defer object.Close()
-
-	return object, nil
+	return nil
 }

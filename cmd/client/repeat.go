@@ -23,6 +23,9 @@ func (m model) RepeatUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.cursor {
 			case 0:
 				m.state = m.err.ToState
+				if _, ok := m.currentChoices[m.state]; ok {
+					m.choices = m.currentChoices[m.state]
+				}
 				return m, nil
 			case 1:
 				switch m.err.ToState {

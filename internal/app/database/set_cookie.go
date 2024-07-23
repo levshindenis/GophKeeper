@@ -19,7 +19,7 @@ func (sd *Database) SetCookie(userId string, login string) error {
 	} else {
 		if _, err := sd.DB.ExecContext(ctx,
 			`UPDATE users set user_id = $1 where user_id = $2`,
-			"", userId); err != nil {
+			login, userId); err != nil {
 
 			return err
 		}

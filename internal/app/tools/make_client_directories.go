@@ -15,7 +15,7 @@ func MakeBaseDirectories() error {
 	}
 
 	if _, err := os.Stat("/tmp/keeper/db/keeper.db"); errors.Is(err, os.ErrNotExist) {
-		if _, err1 := os.Create("/tmp/keeper/db/keeper.db"); err != nil {
+		if _, err1 := os.Create("/tmp/keeper/db/keeper.db"); err1 != nil {
 			return err1
 		}
 	}

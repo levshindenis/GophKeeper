@@ -45,7 +45,7 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				resp, err := m.client.R().Get("http://localhost:8080" + "/user/update-time")
 				if resp.StatusCode() != 200 || err != nil {
-					m.ErrorState(string(resp.Body()), "log_input_login")
+					m.ErrorState(string(resp.Body()), "menu")
 					if err != nil {
 						m.err.Err = err.Error()
 					}
@@ -95,7 +95,7 @@ func (m model) MenuUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				resp, err := m.client.R().Get("http://localhost:8080" + "/user/update-time")
 				if resp.StatusCode() != 200 || err != nil {
-					m.ErrorState(string(resp.Body()), "log_input_login")
+					m.ErrorState(string(resp.Body()), "menu")
 					if err != nil {
 						m.err.Err = err.Error()
 					}

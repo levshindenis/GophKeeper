@@ -2,30 +2,21 @@ package cloud
 
 import (
 	"context"
-	"log"
-
 	"github.com/minio/minio-go/v7"
 )
 
 func (c *Cloud) DeleteAccount(userId string) error {
-	objectsCh := make(chan minio.ObjectInfo)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	go func() {
-		defer close(objectsCh)
-		for object := range c.Client.ListObjects(context.Background(), userId, minio.ListObjectsOptions{}) {
-			if object.Err != nil {
-				log.Fatalln(object.Err)
-			}
-			objectsCh <- object
+	defer cancel()
+
+	objectCh := c.Client.ListObjects(ctx, userId, minio.ListObjectsOptions{})
+
+	for elem := range objectCh {
+		err := c.Client.RemoveObject(context.Background(), userId, elem.Key, minio.RemoveObjectOptions{GovernanceBypass: true})
+		if err != nil {
+			return err
 		}
-	}()
-
-	opts := minio.RemoveObjectsOptions{
-		GovernanceBypass: true,
-	}
-
-	for rErr := range c.Client.RemoveObjects(context.Background(), userId, objectsCh, opts) {
-		return rErr.Err
 	}
 
 	err := c.Client.RemoveBucket(context.Background(), userId)

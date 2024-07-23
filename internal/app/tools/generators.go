@@ -5,6 +5,8 @@ import (
 	"crypto/cipher"
 	rb "crypto/rand"
 	"encoding/base64"
+	"math/rand"
+	"time"
 )
 
 // GenerateCrypto - создает крипто-ключ
@@ -87,4 +89,23 @@ func Decrypt(hashText string, secretKey string) string {
 	}
 
 	return string(plaintext)
+}
+
+func GenerateShortKey(param bool) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const badCharset = ".,*/=-_"
+	const keyLength = 9
+
+	source := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(source)
+	shortKey := make([]byte, keyLength)
+	for i := range shortKey {
+		if param {
+			shortKey[i] = badCharset[rng.Intn(len(badCharset))]
+		} else {
+			shortKey[i] = charset[rng.Intn(len(charset))]
+		}
+
+	}
+	return string(shortKey)
 }

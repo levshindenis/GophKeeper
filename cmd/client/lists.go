@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -123,10 +124,17 @@ func (m model) ListsUpdate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "file":
 				m.cursor = 4
 
-				filePath := "/tmp/keeper/files/" + m.userId + "/" + tools.Decrypt(m.helpStr, m.secretKey)
+				filePath := path.Join("/tmp/keeper/files", m.userId, tools.Decrypt(m.helpStr, m.secretKey))
 				if err := open.Run(filePath); err != nil {
-					m.ErrorState(err.Error(), "files")
-					return m, nil
+
+					if err1 := m.cloud.GetFile(m.userId, tools.Decrypt(m.helpStr, m.secretKey), "/tmp/keeper/files"); err1 != nil {
+						m.ErrorState(err1.Error(), "files")
+						return m, nil
+					}
+					if err1 := open.Run(filePath); err1 != nil {
+						m.ErrorState(err1.Error(), "files")
+						return m, nil
+					}
 				}
 
 				if err := m.cloud.DeleteFile(m.userId, tools.Decrypt(m.helpStr, m.secretKey)); err != nil {
